@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finalizar Pedido</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f9f3e9;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .product-list {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .product-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #eee;
+        }
+        .product-item:last-child {
+            border-bottom: none;
+        }
+        .product-info {
+            flex: 1;
+        }
+        .product-quantity {
+            width: 100px;
+            text-align: right;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        .submit-btn {
+            background: #e91e63;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            width: 100%;
+            transition: background 0.3s;
+        }
+        .submit-btn:hover {
+            background: #c2185b;
+        }
+        .total {
+            font-weight: bold;
+            font-size: 18px;
+            text-align: right;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border-radius: 5px;
+        }
+        .empty-cart {
+            color: #888;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📝 Finalizar Pedido</h2>
+        
+        <div class="product-list" id="productSummary">
+            <h3>Resumen de tu pedido</h3>
+            <div id="productItems">
+                <!-- Los productos se mostrarán aquí -->
+            </div>
+            <div class="total" id="orderTotal">Total: Q0.00</div>
+        </div>
+        
+        <form id="orderForm" name="pedido-donas" method="POST" netlify>
+            <input type="hidden" name="form-name" value="pedido-donas">
+            
+            <h3>Datos Personales</h3>
+            <input type="text" name="nombre" placeholder="Nombre" required>
+            <input type="text" name="apellido" placeholder="Apellido" required>
+            <input type="text" name="direccion" placeholder="Dirección de entrega" required>
+            <input type="tel" name="telefono" placeholder="Teléfono" required>
+            <textarea name="notas" placeholder="Notas adicionales (ej: alergias, instrucciones especiales)"></textarea>
+            
+            <!-- Campos ocultos para productos -->
+            <div id="hiddenProducts"></div>
+            
+            <button type="submit" class="submit-btn">Enviar Pedido</button>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const productItems = document.getElementById('productItems');
+            const hiddenProducts = document.getElementById('hiddenProducts');
+            const orderTotal = document.getElementById('orderTotal');
+            
+            // Precios y nombres de las donas
+            const donaPrices = {
+                'D001': 8.00,
+                'D002': 10.00,
+                'D003': 12.00,
+                'D004': 9.00,
+                'D005': 7.00
+            };
+            
+            const donaNames = {
+                'D001': 'Dona Glaseada Clásica',
+                'D002': 'Dona de Chocolate',
+                'D003': 'Dona Rellena de Mermelada',
+                'D004': 'Dona con Sprinkles',
+                'D005': 'Dona de Canela'
+            };
+            
+            // Obtener carrito del localStorage
+            const cart = JSON.parse(localStorage.getItem('donaCart')) || {};
+            let total = 0;
+            let html = '';
+            
+            // Limpiar campos ocultos previos
+            hiddenProducts.innerHTML = '';
+            
+            // Generar HTML para cada producto
+            for (const [id, product] of Object.entries(cart)) {
+                const subtotal = product.price * product.quantity;
+                total += subtotal;
+                
+                html += `
+                    <div class="product-item">
+                        <div class="product-info">
+                            <strong>${product.name}</strong>
+                            <div>Precio unitario: Q${product.price.toFixed(2)}</div>
+                        </div>
+                        <div class="product-quantity">
+                            Cantidad: ${product.quantity}<br>
+                            <small>Subtotal: Q${subtotal.toFixed(2)}</small>
+                        </div>
+                    </div>
+                `;
+                
+                // Agregar campos ocultos para el formulario
+                hiddenProducts.innerHTML += `
+                    <input type="hidden" name="productos[${id}][tipo]" value="${id}">
+                    <input type="hidden" name="productos[${id}][nombre]" value="${product.name}">
+                    <input type="hidden" name="productos[${id}][precio]" value="${product.price}">
+                    <input type="hidden" name="productos[${id}][cantidad]" value="${product.quantity}">
+                    <input type="hidden" name="productos[${id}][subtotal]" value="${subtotal}">
+                `;
+            }
+            
+            // Manejar carrito vacío
+            if (Object.keys(cart).length === 0) {
+                html = '<div class="empty-cart">No hay productos en el carrito</div>';
+                alert('No hay productos en el carrito. Serás redirigido.');
+                setTimeout(() => {
+                    window.location.href = 'carrito.html';
+                }, 2000);
+            }
+            
+            productItems.innerHTML = html;
+            orderTotal.textContent = `Total: Q${total.toFixed(2)}`;
+            
+            // Validar envío del formulario
+            document.getElementById('orderForm').addEventListener('submit', function(e) {
+                if (Object.keys(cart).length === 0) {
+                    e.preventDefault();
+                    alert('Debes agregar productos al carrito primero');
+                    window.location.href = 'carrito.html';
+                    return;
+                }
+                
+                // Opcional: Limpiar el carrito después de enviar el pedido
+                localStorage.removeItem('donaCart');
+            });
+        });
+    </script>
+</body>
+</html>
