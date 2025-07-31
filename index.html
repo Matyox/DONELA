@@ -109,31 +109,50 @@
         </form>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const productItems = document.getElementById('productItems');
-            const hiddenProducts = document.getElementById('hiddenProducts');
-            const orderTotal = document.getElementById('orderTotal');
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+<script>
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyAqD2f7AYOEzcwmiaoKjpjHxG8rhfm4rLw",
+  authDomain: "donaspedidos-f9cb9.firebaseapp.com",
+  projectId: "donaspedidos-f9cb9",
+  storageBucket: "donaspedidos-f9cb9.firebasestorage.app",
+  messagingSenderId: "748109050944",
+  appId: "1:748109050944:web:35798a82572b2430209ba5",
+  measurementId: "G-NW1KET3F5X"
+};
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const productItems = document.getElementById('productItems');
+        const hiddenProducts = document.getElementById('hiddenProducts');
+        const orderTotal = document.getElementById('orderTotal');
+        
+        // Obtener el ID del carrito de la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const cartId = urlParams.get('cartId');
+        
+        if (!cartId) {
+            showEmptyCart();
+            return;
+        }
+        
+        // Referencia al carrito en Firestore
+        const cartRef = db.collection('carts').doc(cartId);
+        
+        // Cargar y mostrar el carrito
+        cartRef.get().then((doc) => {
+            if (!doc.exists || !doc.data().items || Object.keys(doc.data().items).length === 0) {
+                showEmptyCart();
+                return;
+            }
             
-            // Precios y nombres de las donas
-            const donaPrices = {
-                'D001': 8.00,
-                'D002': 10.00,
-                'D003': 12.00,
-                'D004': 9.00,
-                'D005': 7.00
-            };
-            
-            const donaNames = {
-                'D001': 'Dona Glaseada Clásica',
-                'D002': 'Dona de Chocolate',
-                'D003': 'Dona Rellena de Mermelada',
-                'D004': 'Dona con Sprinkles',
-                'D005': 'Dona de Canela'
-            };
-            
-            // Obtener carrito del localStorage
-            const cart = JSON.parse(localStorage.getItem('donaCart')) || {};
+            const cart = doc.data().items;
             let total = 0;
             let html = '';
             
@@ -168,31 +187,42 @@
                 `;
             }
             
-            // Manejar carrito vacío
-            if (Object.keys(cart).length === 0) {
-                html = '<div class="empty-cart">No hay productos en el carrito</div>';
-                alert('No hay productos en el carrito. Serás redirigido.');
-                setTimeout(() => {
-                    window.location.href = 'carrito.html';
-                }, 2000);
-            }
-            
             productItems.innerHTML = html;
             orderTotal.textContent = `Total: Q${total.toFixed(2)}`;
             
-            // Validar envío del formulario
-            document.getElementById('orderForm').addEventListener('submit', function(e) {
-                if (Object.keys(cart).length === 0) {
+            // Agregar el ID del carrito como campo oculto
+            hiddenProducts.innerHTML += `<input type="hidden" name="cartId" value="${cartId}">`;
+        });
+        
+        function showEmptyCart() {
+            productItems.innerHTML = '<div class="empty-cart">No hay productos en el carrito</div>';
+            alert('No hay productos en el carrito. Serás redirigido.');
+            setTimeout(() => {
+                window.location.href = 'carrito.html';
+            }, 2000);
+        }
+        
+        // Validar envío del formulario
+        document.getElementById('orderForm').addEventListener('submit', function(e) {
+            // Primero verifica si hay productos
+            cartRef.get().then((doc) => {
+                if (!doc.exists || Object.keys(doc.data().items || {}).length === 0) {
                     e.preventDefault();
                     alert('Debes agregar productos al carrito primero');
                     window.location.href = 'carrito.html';
                     return;
                 }
                 
-                // Opcional: Limpiar el carrito después de enviar el pedido
-                localStorage.removeItem('donaCart');
+                // Opcional: Marcar el carrito como completado en Firebase
+                return cartRef.update({
+                    status: 'completed',
+                    completedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }).catch((error) => {
+                console.error("Error al actualizar el carrito:", error);
             });
         });
-    </script>
+    });
+</script>
 </body>
 </html>
