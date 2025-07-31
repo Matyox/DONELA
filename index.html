@@ -214,26 +214,27 @@ if (cartId) {
         }
         
         // Validar envío del formulario
-        document.getElementById('orderForm').addEventListener('submit', function(e) {
-            // Primero verifica si hay productos
-            cartRef.get().then((doc) => {
-                if (!doc.exists || Object.keys(doc.data().items || {}).length === 0) {
-                    e.preventDefault();
-                    alert('Debes agregar productos al carrito primero');
-                    window.location.href = 'carrito.html';
-                    return;
-                }
-                
-                // Opcional: Marcar el carrito como completado en Firebase
-                return cartRef.update({
-                    status: 'completed',
-                    completedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }).catch((error) => {
-                console.error("Error al actualizar el carrito:", error);
-            });
+           document.getElementById('orderForm').addEventListener('submit', function(e) {
+    e.preventDefault(); // <-- Añade esto aquí para bloquear el envío inicial
+    
+    cartRef.get().then((doc) => {
+        if (!doc.exists || Object.keys(doc.data().items || {}).length === 0) {
+            alert('Debes agregar productos al carrito primero');
+            window.location.href = 'carrito.html';
+            return;
+        }
+        
+        // Opcional: Marcar como completado
+        return cartRef.update({
+            status: 'completed',
+            completedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(() => {
+            this.submit(); // <-- Envía el formulario a Netlify SOLO si todo está bien
         });
+    }).catch((error) => {
+        console.error("Error:", error);
     });
+});
 </script>
 </body>
 </html>
