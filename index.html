@@ -138,23 +138,19 @@ const firebaseConfig = {
         const cartId = urlParams.get('cartId');
         console.log("ID del carrito recibido:", cartId); // Para debuggear
 
-// POR ESTA (más robusta):
 if (cartId) {
     db.collection("carts").doc(cartId).get()
         .then(doc => {
             if (doc.exists) {
                 const cartData = doc.data();
-                // Aquí tu lógica para mostrar productos (la que ya tenías)
-                console.log("Datos recibidos:", cartData); // Debug
+                // Aquí tu lógica para mostrar productos
+                console.log("Datos recibidos:", cartData);
             } else {
                 alert("Carrito vacío. Redirigiendo...");
                 window.location.href = "carrito.html";
             }
         })
         .catch(error => console.error("Error Firebase:", error));
-} else {
-    alert("Error: No hay ID de carrito");
-    window.location.href = "carrito.html";
 }
         
         // Referencia al carrito en Firestore
